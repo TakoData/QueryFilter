@@ -1,0 +1,22 @@
+[tool.poetry]
+authors = ["Noah Jackson <noah@trytako.com>"]
+description = "Combines models to predict which queries Tako's API should handle"
+name = "tako-query-filter"
+packages = [{include = "tako_query_filter", from = "src"}]
+readme = "README.md"
+version = "0.1.1"
+
+[tool.poetry.dependencies]
+huggingface-hub = "0.26.1"
+ipykernel = "6.29.5"
+joblib = "1.4.2"
+numpy = "1.26.4"
+python = "3.10.14"
+scikit-learn = "1.4.1.post1"
+sentence-transformers = "3.0.1"
+spacy = "3.7.6"
+jupyter = "1.1.1"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core"]
