@@ -35,14 +35,18 @@ class TakoQueryFilter:
         scikit_path: str = "TakoData/QueryClassifier",
         spacy_path: str = "TakoData/ner-model-best",
         revision: Optional[str] = "test-models",  # TODO: Make this None
+        force_download: bool = False,
     ):
-        spacy_model = spacy.load(snapshot_download(spacy_path))
+        spacy_model = spacy.load(
+            snapshot_download(spacy_path, force_download=force_download)
+        )
 
         chart_model = joblib.load(
             hf_hub_download(
                 repo_id=scikit_path,
                 filename="tako-classifier/chart_model.pkl",
                 revision=revision,
+                force_download=force_download,
             )
         )
         topic_model = joblib.load(
@@ -50,12 +54,14 @@ class TakoQueryFilter:
                 repo_id=scikit_path,
                 filename="tako-classifier/topic_model.pkl",
                 revision=revision,
+                force_download=force_download,
             )
         )
         keywords_file = hf_hub_download(
             repo_id=scikit_path,
             filename="tako-classifier/keywords.json",
             revision=revision,
+            force_download=force_download,
         )
         with open(keywords_file, "r") as f:
             keywords = set(json.load(f))
@@ -72,20 +78,6 @@ class TakoQueryFilter:
         self, queries: Iterable[str]
     ) -> Union[List[Tensor], np.ndarray, Tensor]:
         return self.model.encode(list(queries))
-
-    def _extract_spacy_features(self, queries: Iterable[str]) -> List[np.ndarray]:
-        vectors = []
-        for query in queries:
-            span_count = 0
-            vector = np.zeros((self.spacy_dims,))
-            doc = self.spacy_model(query)
-            for span_group in doc.spans.values():
-                for span in span_group:
-                    vector += span.vector
-                    span_count += 1
-            vectors.append(vector / span_count)
-
-        return vectors
 
     def predict(
         self,
@@ -139,13 +131,25 @@ class TakoQueryFilter:
 
     def _split_query(self, query: str) -> List[str]:
         split_keywords = ["vs", "vs.", "versus", "or", "and"]
-        query = query.lower()
-        for keyword in split_keywords:
-            # Create a regex pattern to match the keyword as a whole word
-            pattern = r"\b{}\b".format(re.escape(keyword))
-            if re.search(pattern, query):
-                parts = [part.strip() for part in re.split(pattern, query)]
-                if len(parts) > 1:
-                    return parts
+        split_keywords = r"\s+(vs\.?|versus|or|and)\s+"
+        subqueries = re.split(split_keywords, query.lower(), re.IGNORECASE)
 
-        return [query]  # Return the original query if no split occurs
+        return [
+            sq.strip()
+            for sq in subqueries
+            if sq.strip() and sq.strip() not in ["vs", "vs.", "versus", "or", "and"]
+        ]
+
+    def _extract_spacy_features(self, queries: Iterable[str]) -> List[np.ndarray]:
+        vectors = []
+        for query in queries:
+            span_count = 0
+            vector = np.zeros((self.spacy_dims,))
+            doc = self.spacy_model(query)
+            for span_group in doc.spans.values():
+                for span in span_group:
+                    vector += span.vector
+                    span_count += 1
+            vectors.append(vector / span_count)
+
+        return vectors
