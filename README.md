@@ -19,7 +19,9 @@ pip install git+https://github.com/TakoData/QueryFilter.git
 - Get access to Tako HF repos
 - Export your `HF_TOKEN` as an environment variable
 
-### Example
+### Examples
+See the [demo notebook](demo.ipynb) for a more interactive example.
+
 ```
 from tako_query_filter.filter import TakoQueryFilter
 
