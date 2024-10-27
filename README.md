@@ -12,6 +12,10 @@ Handles pulling
 ```
 pip install git+https://github.com/TakoData/QueryFilter.git
 ```
+With embeddings support, which pulls in the large `sentence-transformers` package:
+```
+pip install "git+https://github.com/TakoData/QueryFilter.git#egg=tako-query-filter[embeddings]"
+```
 
 ## Usage
 

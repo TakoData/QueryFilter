@@ -3,11 +3,8 @@ import logging
 import re
 import joblib
 import numpy as np
-from typing import Iterable, List, Optional, Set, Union
-from functools import cached_property
-from sentence_transformers import SentenceTransformer
+from typing import Iterable, List, Optional, Set
 from sklearn.linear_model import LogisticRegressionCV
-from torch import Tensor
 from huggingface_hub import hf_hub_download
 
 
@@ -22,6 +19,7 @@ class TakoQueryFilter:
         self.topic_model = topic_model
         self.keywords = keywords
         self.keyword_match_score = 0.9
+        self.model = None
 
     @classmethod
     def load_from_hf(
@@ -57,21 +55,21 @@ class TakoQueryFilter:
 
         return cls(chart_model, topic_model, keywords)
 
-    @cached_property
-    def model(self) -> SentenceTransformer:
-        return SentenceTransformer(
-            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-        )
+    def create_embeddings(self, queries: Iterable[str]) -> np.ndarray:
+        if not self.model:
+            from sentence_transformers import SentenceTransformer
 
-    def create_embeddings(
-        self, queries: Iterable[str]
-    ) -> Union[List[Tensor], np.ndarray, Tensor]:
-        return self.model.encode(list(queries), normalize_embeddings=True)
+            self.model = SentenceTransformer(
+                "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            )
+
+        embeddings = self.model.encode(list(queries), normalize_embeddings=True)
+        return embeddings
 
     def predict(
         self,
         queries: List[str],
-        embeddings: Union[List[Tensor], np.ndarray, Tensor] = np.array([]),
+        embeddings: np.ndarray = np.array([]),
         chart_weight=0.5,
         topic_weight=0.5,
     ):
@@ -84,7 +82,7 @@ class TakoQueryFilter:
     def predict_proba(
         self,
         queries: List[str],
-        embeddings: Union[List[Tensor], np.ndarray, Tensor] = np.array([]),
+        embeddings: np.ndarray = np.array([]),
         chart_weight=0.5,
         topic_weight=0.5,
     ) -> np.ndarray:
