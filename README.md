@@ -1,6 +1,7 @@
 # Query Filter
-A set of models for filtering out queries that the Tako API won't be able to serve.
-Handles pulling 
+This library wraps a set of models that predict whether Tako will be able to serve a given query.
+It handles downloading the models from Hugging Face, as well as providing a simple API for filtering 
+queries.
 
 
 ## Table of Contents
@@ -20,8 +21,8 @@ pip install "git+https://github.com/TakoData/QueryFilter.git#egg=tako-query-filt
 ## Usage
 
 ### Prerequisites
-- Get access to Tako HF repos
-- Export your `HF_TOKEN` as an environment variable
+- Get access to Tako Hugging Face repositories
+- Log into Hugging Face using `huggingface-cli login`
 
 ### Examples
 See the [demo notebook](demo.ipynb) for a more interactive example.
