@@ -6,20 +6,20 @@ import numpy as np
 from typing import Iterable, List, Optional, Set
 from sklearn.linear_model import LogisticRegressionCV
 from huggingface_hub import hf_hub_download
+from spacy.language import Language
 
 
 class TakoQueryFilter:
     def __init__(
         self,
-        chart_model: LogisticRegressionCV,
         topic_model: LogisticRegressionCV,
+        spacy_model: Language,
         keywords: Set[str],
     ):
-        self.chart_model = chart_model
         self.topic_model = topic_model
+        self.spacy_model = spacy_model
         self.keywords = keywords
         self.keyword_match_score = 0.9
-        self.model = None
 
     @classmethod
     def load_from_hf(
@@ -66,15 +66,31 @@ class TakoQueryFilter:
         embeddings = self.model.encode(list(queries), normalize_embeddings=True)
         return embeddings
 
+    def extract_spacy_features(self, query: str) -> np.ndarray:
+        vector = np.zeros((256,))
+
+        doc = self.spacy_model(query)
+        spans = doc.spans["sc"]
+        scores = doc.spans["sc"].attrs["scores"]
+        for span, score in zip(spans, scores):
+            if score:
+                vector += np.array(span.vector) * score
+
+        if len(spans) > 0:
+            # Normalize vector
+            norm = np.linalg.norm(vector)
+            if norm > 0:
+                vector = (vector - np.mean(vector)) / norm
+
+        return vector
+
     def predict(
         self,
         queries: List[str],
         embeddings: np.ndarray = np.array([]),
-        chart_weight=0.5,
-        topic_weight=0.5,
     ):
         # Use predict_proba to get class predictions
-        probs = self.predict_proba(queries, embeddings, chart_weight, topic_weight)
+        probs = self.predict_proba(queries, embeddings)
         # Convert probabilities to binary predictions
         predictions = (probs > 0.5).astype(int)
         return predictions
@@ -83,8 +99,6 @@ class TakoQueryFilter:
         self,
         queries: List[str],
         embeddings: np.ndarray = np.array([]),
-        chart_weight=0.5,
-        topic_weight=0.5,
     ) -> np.ndarray:
         if len(embeddings) != len(queries):
             if len(embeddings) > 0:
@@ -93,17 +107,13 @@ class TakoQueryFilter:
                 )
             embeddings = self.create_embeddings(queries)
 
+        spacy_vectors = [self.extract_spacy_features(query) for query in queries]
+        # Combine embeddings with spacy vectors
+        X = np.hstack([embeddings, spacy_vectors])
+
         # Get probabilities from both models
-        chart_probs = self.chart_model.predict_proba(embeddings)
-        topic_probs = self.topic_model.predict_proba(embeddings)
-
-        # Get probabilities of the positive class (index 1) from both models
-        chart_probs_positive = chart_probs[:, 1]
-        topic_probs_positive = topic_probs[:, 1]
-
-        positive_probs = (
-            chart_weight * chart_probs_positive + topic_weight * topic_probs_positive
-        )
+        probs = self.topic_model.predict_proba(X)
+        positive_probs = probs[:, 1]
 
         for i, query in enumerate(queries):
             split_query = self._split_query(query)
