@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 from typing import Iterable, List, Optional, Set
 from sklearn.linear_model import LogisticRegressionCV
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, snapshot_download
 import spacy
 from spacy.language import Language
 
@@ -40,13 +40,11 @@ class TakoQueryFilter:
                 force_download=force_download,
             )
         )
-        spacy_model_path = hf_hub_download(
+        spacy_model_dir = snapshot_download(
             repo_id="TakoData/ner-model-best",
-            filename="config.cfg",
             revision=spacy_revision,
             force_download=force_download,
         )
-        spacy_model_dir = str(Path(spacy_model_path).parent)
         spacy_model = spacy.load(spacy_model_dir)
         keywords_file = hf_hub_download(
             repo_id=scikit_path,

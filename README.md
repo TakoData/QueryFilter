@@ -22,6 +22,7 @@ pip install "git+https://github.com/TakoData/QueryFilter.git#egg=tako-query-filt
 
 ### Prerequisites
 - Get access to Tako Hugging Face repositories
+- Install and init `git-lfs`
 - Log into Hugging Face using `huggingface-cli login`
 
 ### Examples
