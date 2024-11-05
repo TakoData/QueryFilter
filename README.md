@@ -11,11 +11,11 @@ queries.
 
 ## Installation
 ```
-pip install git+https://github.com/TakoData/QueryFilter.git
+pip install git+https://github.com/TakoData/QueryFilter.git@0.1.2
 ```
 With embeddings support, which pulls in the large `sentence-transformers` package:
 ```
-pip install "git+https://github.com/TakoData/QueryFilter.git#egg=tako-query-filter[embeddings]"
+pip install "git+https://github.com/TakoData/QueryFilter.git@0.1.2#egg=tako-query-filter[embeddings]"
 ```
 
 ## Usage

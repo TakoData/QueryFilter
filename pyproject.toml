@@ -4,7 +4,7 @@ description = "Combines models to predict which queries Tako's API should handle
 name = "tako-query-filter"
 packages = [{include = "tako_query_filter", from = "src"}]
 readme = "README.md"
-version = "0.1.1"
+version = "0.1.2"
 
 [tool.poetry.dependencies]
 huggingface-hub = "0.26.1"
