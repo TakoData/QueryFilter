@@ -57,6 +57,31 @@ class TakoQueryFilter:
 
         return cls(topic_model, spacy_model, keywords)
 
+    @classmethod
+    def load_from_local(
+        cls,
+        topic_model_path: str,
+        spacy_model_path: str,
+        keywords_path: str,
+    ):
+        """Load TakoQueryFilter from local file paths.
+
+        Args:
+            topic_model_path: Path to the scikit-learn topic model pickle file
+            spacy_model_path: Path to the spacy model directory
+            keywords_path: Path to the whitelist keywords JSON file
+
+        Returns:
+            TakoQueryFilter: Initialized filter with models loaded from local paths
+        """
+        topic_model = joblib.load(topic_model_path)
+        spacy_model = spacy.load(spacy_model_path)
+
+        with open(keywords_path, "r") as f:
+            keywords = set(json.load(f))
+
+        return cls(topic_model, spacy_model, keywords)
+
     def create_embeddings(self, queries: Iterable[str]) -> np.ndarray:
         if not self.embeddings_model:
             from sentence_transformers import SentenceTransformer
