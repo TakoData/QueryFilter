@@ -1,155 +1,74 @@
 import json
-import logging
-from pathlib import Path
 import re
-import joblib
-import numpy as np
-from typing import Iterable, List, Optional, Set
-from sklearn.linear_model import LogisticRegressionCV
-from huggingface_hub import hf_hub_download, snapshot_download
+from typing import List, Optional, Set
 import spacy
-from spacy.language import Language
+import hashlib
+from importlib import resources
 
 
 class TakoQueryFilter:
     def __init__(
         self,
-        topic_model: LogisticRegressionCV,
-        spacy_model: Language,
-        keywords: Set[str],
+        keyword_hashes: Set[str],
     ):
-        self.topic_model = topic_model
-        self.spacy_model = spacy_model
-        self.keywords = keywords
+        self.nlp = spacy.load("en_tako_query_filter")
+        self.keywords_hashes = keyword_hashes
         self.keyword_match_score = 0.9
-        self.embeddings_model = None
 
     @classmethod
-    def load_from_hf(
+    def load_with_keywords(
         cls,
-        scikit_path: str = "TakoData/ScikitModels",
-        topic_revision: Optional[str] = "a8a257f706ec28a63eeb40b088b8e05b30670971",
-        spacy_revision: Optional[str] = "156303cfba1f9ac5ef7cfd35fe5dc8c9238a459d",
-        force_download: bool = False,
+        keywords_path: Optional[str] = None,
     ):
-        topic_model = joblib.load(
-            hf_hub_download(
-                repo_id=scikit_path,
-                filename="models/topic_model.pkl",
-                revision=topic_revision,
-                force_download=force_download,
-            )
-        )
-        spacy_model_dir = snapshot_download(
-            repo_id="TakoData/ner-model-best",
-            revision=spacy_revision,
-            force_download=force_download,
-        )
-        spacy_model = spacy.load(spacy_model_dir)
-        keywords_file = hf_hub_download(
-            repo_id=scikit_path,
-            filename="models/keywords.json",
-            revision=topic_revision,
-            force_download=force_download,
-        )
-        with open(keywords_file, "r") as f:
-            keywords = set(json.load(f))
-
-        return cls(topic_model, spacy_model, keywords)
-
-    @classmethod
-    def load_from_local(
-        cls,
-        topic_model_path: str,
-        spacy_model_path: str,
-        keywords_path: str,
-    ):
-        """Load TakoQueryFilter from local file paths.
+        """Load TakoQueryFilter with a set of whitelist keywords.
 
         Args:
-            topic_model_path: Path to the scikit-learn topic model pickle file
-            spacy_model_path: Path to the spacy model directory
-            keywords_path: Path to the whitelist keywords JSON file
+            keywords_path: Path to the md5 hashed whitelist keywords JSON file
 
         Returns:
             TakoQueryFilter: Initialized filter with models loaded from local paths
         """
-        topic_model = joblib.load(topic_model_path)
-        spacy_model = spacy.load(spacy_model_path)
 
-        with open(keywords_path, "r") as f:
-            keywords = set(json.load(f))
+        if not keywords_path:
+            with resources.files("tako_query_filter").joinpath("keywords.json").open(
+                "r"
+            ) as f:
+                keyword_hashes = set(json.load(f))
+        else:
+            with open(keywords_path, "r") as f:
+                keyword_hashes = set(json.load(f))
 
-        return cls(topic_model, spacy_model, keywords)
-
-    def create_embeddings(self, queries: Iterable[str]) -> np.ndarray:
-        if not self.embeddings_model:
-            from sentence_transformers import SentenceTransformer
-
-            self.embeddings_model = SentenceTransformer(
-                "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-            )
-
-        embeddings = self.embeddings_model.encode(
-            list(queries), normalize_embeddings=True
-        )
-        return embeddings
-
-    def extract_spacy_features(self, query: str) -> np.ndarray:
-        vector = np.zeros((256,))
-
-        doc = self.spacy_model(query)
-        spans = doc.spans["sc"]
-        scores = doc.spans["sc"].attrs["scores"]
-        for span, score in zip(spans, scores):
-            if score:
-                vector += np.array(span.vector) * score
-
-        if len(spans) > 0:
-            # Normalize vector
-            norm = np.linalg.norm(vector)
-            if norm > 0:
-                vector = (vector - np.mean(vector)) / norm
-
-        return vector
+        return cls(keyword_hashes)
 
     def predict(
         self,
         queries: List[str],
-        embeddings: np.ndarray = np.array([]),
-    ):
-        # Use predict_proba to get class predictions
-        probs = self.predict_proba(queries, embeddings)
-        # Convert probabilities to binary predictions
-        predictions = (probs > 0.5).astype(int)
+    ) -> List[int]:
+        probs = self.predict_proba(queries)
+        predictions = [1 if p > 0.5 else 0 for p in probs]
         return predictions
 
     def predict_proba(
         self,
         queries: List[str],
-        embeddings: np.ndarray = np.array([]),
-    ) -> np.ndarray:
-        if len(embeddings) != len(queries):
-            if len(embeddings) > 0:
-                logging.warning(
-                    f"Provided embeddings of len {len(embeddings)} are not the same length as queries {len(queries)}, generating embeddings"
-                )
-            embeddings = self.create_embeddings(queries)
+    ) -> List[float]:
+        preds = self.nlp.pipe(queries)
 
-        spacy_vectors = [self.extract_spacy_features(query) for query in queries]
-        # Combine embeddings with spacy vectors
-        X = np.hstack([embeddings, spacy_vectors])
+        probs = []
+        for pred in preds:
+            accept = pred.cats["ACCEPT"]
+            reject = pred.cats["REJECT"]
+            # Just to be safe, normalize the probabilities
+            probs.append(accept / (accept + reject))
 
-        # Get probabilities from both models
-        probs = self.topic_model.predict_proba(X)
-        positive_probs = probs[:, 1]
-
+        # Check keywords
         for i, query in enumerate(queries):
             split_query = self._split_query(query)
-            if any(split for split in split_query if split in self.keywords):
-                positive_probs[i] = self.keyword_match_score
+            split_hashes = {self._hash_string(split) for split in split_query}
+            if any(split_hash in self.keywords_hashes for split_hash in split_hashes):
+                probs[i] = self.keyword_match_score
 
-        return positive_probs
+        return probs
 
     def _split_query(self, query: str) -> List[str]:
         split_keywords = ["vs", "vs.", "versus", "or", "and"]
@@ -161,3 +80,7 @@ class TakoQueryFilter:
             for sq in subqueries
             if sq.strip() and sq.strip() not in ["vs", "vs.", "versus", "or", "and"]
         ]
+
+    @staticmethod
+    def _hash_string(s: str) -> str:
+        return hashlib.md5(s.lower().encode("utf-8")).hexdigest()
