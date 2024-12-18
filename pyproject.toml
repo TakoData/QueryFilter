@@ -5,7 +5,7 @@ include = ["keywords.json"]
 name = "tako-query-filter"
 packages = [{include = "tako_query_filter", from = "src"}]
 readme = "README.md"
-version = "0.1.4"
+version = "0.2.0"
 
 [tool.poetry.dependencies]
 en-tako-query-filter = {url = "https://huggingface.co/TakoData/en_tako_query_filter/resolve/main/en_tako_query_filter-any-py3-none-any.whl"}
