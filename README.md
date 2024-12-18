@@ -20,7 +20,7 @@ See the [demo notebook](demo.ipynb) for a more interactive example.
 ```
 from tako_query_filter.filter import TakoQueryFilter
 
-query_filter = TakoQueryFilter.load_with_keywords()
+query_filter = TakoQueryFilter()
 
 queries = [
     "aapl vs nvda",

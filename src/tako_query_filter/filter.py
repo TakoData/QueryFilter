@@ -1,24 +1,24 @@
 import json
 import re
-from typing import List, Optional, Set
+from typing import Iterable, List
 import spacy
 import hashlib
-from importlib import resources
+from tako_query_filter.keywords import keywords
 
 
 class TakoQueryFilter:
     def __init__(
         self,
-        keyword_hashes: Set[str],
+        keyword_hashes: Iterable[str] = keywords,
     ):
         self.nlp = spacy.load("en_tako_query_filter")
-        self.keywords_hashes = keyword_hashes
+        self.keywords_hashes = set(keyword_hashes)
         self.keyword_match_score = 0.9
 
     @classmethod
     def load_with_keywords(
         cls,
-        keywords_path: Optional[str] = None,
+        keywords_path: str,
     ):
         """Load TakoQueryFilter with a set of whitelist keywords.
 
@@ -28,15 +28,8 @@ class TakoQueryFilter:
         Returns:
             TakoQueryFilter: Initialized filter with models loaded from local paths
         """
-
-        if not keywords_path:
-            with resources.files("tako_query_filter").joinpath("keywords.json").open(
-                "r"
-            ) as f:
-                keyword_hashes = set(json.load(f))
-        else:
-            with open(keywords_path, "r") as f:
-                keyword_hashes = set(json.load(f))
+        with open(keywords_path, "r") as f:
+            keyword_hashes = json.load(f)
 
         return cls(keyword_hashes)
 
