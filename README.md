@@ -11,27 +11,16 @@ queries.
 
 ## Installation
 ```
-pip install git+https://github.com/TakoData/QueryFilter.git@0.1.2
+pip install git+https://github.com/TakoData/QueryFilter.git@0.1.4
 ```
-With embeddings support, which pulls in the large `sentence-transformers` package:
-```
-pip install "git+https://github.com/TakoData/QueryFilter.git@0.1.2#egg=tako-query-filter[embeddings]"
-```
-
 ## Usage
 
-### Prerequisites
-- Get access to Tako Hugging Face repositories
-- Install and init `git-lfs`
-- Log into Hugging Face using `huggingface-cli login`
-
-### Examples
 See the [demo notebook](demo.ipynb) for a more interactive example.
 
 ```
 from tako_query_filter.filter import TakoQueryFilter
 
-query_filter = TakoQueryFilter.load_from_hf()
+query_filter = TakoQueryFilter.load_with_keywords()
 
 queries = [
     "aapl vs nvda",
@@ -42,7 +31,6 @@ queries = [
 
 query_filter.predict(queries)
 ```
-You can also use the `force_download` flag to download the latest version of the models from HuggingFace.
 
 ## License
 
