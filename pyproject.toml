@@ -8,7 +8,7 @@ readme = "README.md"
 version = "0.2.0"
 
 [tool.poetry.dependencies]
-en-tako-query-filter = {url = "https://huggingface.co/TakoData/en_tako_query_filter/resolve/main/en_tako_query_filter-any-py3-none-any.whl"}
+en-tako-query-filter = {url = "https://huggingface.co/TakoData/en_tako_query_filter/resolve/0.0.1/en_tako_query_filter-any-py3-none-any.whl"}
 ipykernel = "6.29.5"
 jupyter = "1.1.1"
 nbstripout = "0.7.1"
