@@ -11,7 +11,7 @@ queries.
 
 ## Installation
 ```
-pip install git+https://github.com/TakoData/QueryFilter.git@0.2.0
+pip install git+https://github.com/TakoData/QueryFilter.git
 ```
 ## Usage
 
