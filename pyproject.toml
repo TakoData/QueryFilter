@@ -1,19 +1,24 @@
-[tool.poetry]
-authors = ["Noah Jackson <noah@trytako.com>"]
+[project]
+authors = [
+  {name = "Noah Jackson", email = "noah@trytako.com"},
+]
+dependencies = [
+  "en-tako-query-filter @ https://huggingface.co/TakoData/en_tako_query_filter/resolve/0.0.1/en_tako_query_filter-any-py3-none-any.whl",
+  "ipykernel~=6.29.5",
+  "jupyter~=1.1.1",
+  "nbstripout~=0.7.1",
+  "tornado>=6.4.2",
+]
 description = "Combines models to predict which queries Tako's API should handle"
-include = ["keywords.json"]
 name = "tako-query-filter"
-packages = [{include = "tako_query_filter", from = "src"}]
 readme = "README.md"
-version = "0.2.0"
+requires-python = ">=3.10.14,<3.13"
+version = "0.2.1"
 
-[tool.poetry.dependencies]
-en-tako-query-filter = {url = "https://huggingface.co/TakoData/en_tako_query_filter/resolve/0.0.1/en_tako_query_filter-any-py3-none-any.whl"}
-ipykernel = "6.29.5"
-jupyter = "1.1.1"
-nbstripout = "0.7.1"
-python = ">=3.10.14,<3.13"
+[tool.setuptools.packages.find]
+include = ["tako_query_filter*"]
+where = ["src"]
 
 [build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core"]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=64.0.0", "wheel"]
