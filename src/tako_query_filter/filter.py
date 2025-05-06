@@ -1,19 +1,25 @@
+import hashlib
 import json
 import re
 from typing import Iterable, List
+
 import spacy
-import hashlib
+
 from tako_query_filter.keywords import keywords
+from tako_query_filter.whitelist import whitelist
 
 
 class TakoQueryFilter:
     def __init__(
         self,
         keyword_hashes: Iterable[str] = keywords,
+        whitelist_hashes: Iterable[str] = whitelist,
     ):
-        self.nlp = spacy.load("en_tako_query_filter")
+        self.nlp = spacy.load("en_tako_query_analyzer")
         self.keywords_hashes = set(keyword_hashes)
+        self.whitelist_hashes = set(whitelist_hashes)
         self.keyword_match_score = 0.9
+        self.whitelist_match_score = 0.8
 
     @classmethod
     def load_with_keywords(
@@ -38,30 +44,42 @@ class TakoQueryFilter:
         queries: List[str],
     ) -> List[int]:
         probs = self.predict_proba(queries)
-        predictions = [1 if p > 0.5 else 0 for p in probs]
+        predictions = [1 if p > 0.3 else 0 for p in probs]
         return predictions
 
     def predict_proba(
         self,
         queries: List[str],
     ) -> List[float]:
-        preds = self.nlp.pipe(queries)
+        with self.nlp.select_pipes(enable=["tok2vec", "ner", "textcat_classify"]):
+            preds = self.nlp.pipe(queries)
 
-        probs = []
-        for pred in preds:
-            accept = pred.cats["ACCEPT"]
-            reject = pred.cats["REJECT"]
-            # Just to be safe, normalize the probabilities
-            probs.append(accept / (accept + reject))
+            probs = []
+            for pred in preds:
+                accept = pred.cats["ACCEPT"]
+                reject = pred.cats["REJECT"]
+                # Just to be safe, normalize the probabilities
+                probs.append(accept / (accept + reject))
 
-        # Check keywords
-        for i, query in enumerate(queries):
-            split_query = self._split_query(query)
-            split_hashes = {self._hash_string(split) for split in split_query}
-            if any(split_hash in self.keywords_hashes for split_hash in split_hashes):
-                probs[i] = self.keyword_match_score
+            # Check whitelist
+            for i, query in enumerate(queries):
+                split_query = query.lower().split()
+                if any(
+                    self._hash_string(split) in self.whitelist_hashes
+                    for split in split_query
+                ):
+                    probs[i] = self.whitelist_match_score
 
-        return probs
+            # Check keywords
+            for i, query in enumerate(queries):
+                split_query = self._split_query(query)
+                split_hashes = {self._hash_string(split) for split in split_query}
+                if any(
+                    split_hash in self.keywords_hashes for split_hash in split_hashes
+                ):
+                    probs[i] = self.keyword_match_score
+
+            return probs
 
     def _split_query(self, query: str) -> List[str]:
         split_keywords = ["vs", "vs.", "versus", "or", "and"]

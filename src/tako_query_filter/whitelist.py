@@ -1,0 +1,10 @@
+whitelist = [
+    "aab92e69374e4c7b8c6741fe02e574b9",
+    "23678db5efde9ab46bce8c23a6d91b50",
+    "533c5ba8368075db8f6ef201546bd71a",
+    "f3639baeb4530db03ef930eb16073f61",
+    "2b93fbdf27d43547bec8794054c28e00",
+    "7e25b972e192b01004b62346ee9975a5",
+    "3811727de5b0ddf6ae30defe2ca4d2c2",
+    "559608508b42a01c1068fae4fcdc2aef",
+]

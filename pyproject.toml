@@ -3,7 +3,7 @@ authors = [
   {name = "Noah Jackson", email = "noah@trytako.com"},
 ]
 dependencies = [
-  "en-tako-query-filter @ https://huggingface.co/TakoData/en_tako_query_filter/resolve/0.0.1/en_tako_query_filter-any-py3-none-any.whl",
+  "en-tako-query-analyzer @ https://huggingface.co/TakoData/en_tako_query_analyzer/resolve/0.0.4/en_tako_query_analyzer-any-py3-none-any.whl",
   "ipykernel~=6.29.5",
   "jupyter~=1.1.1",
   "nbstripout~=0.7.1",
@@ -13,7 +13,7 @@ description = "Combines models to predict which queries Tako's API should handle
 name = "tako-query-filter"
 readme = "README.md"
 requires-python = ">=3.10.14,<3.13"
-version = "0.2.1"
+version = "0.3.0"
 
 [tool.setuptools.packages.find]
 include = ["tako_query_filter*"]
